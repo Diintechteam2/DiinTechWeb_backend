@@ -84,57 +84,120 @@ Rules:
 `.trim();
 };
 
-exports.generatePrivacyDraft = async ({ projectName, websiteUrl, promptInputs }) => {
-  const apiKey = process.env.OPENAI_API_KEY || process.env.OPENAI_KEY;
-  const model = process.env.OPENAI_MODEL || 'gpt-4o-mini';
+exports.generatePrivacyDraft = async ({ projectName, websiteUrl, promptInputs, provider = 'openai' }) => {
+  const isGemini = provider?.toLowerCase() === 'gemini';
 
-  if (!apiKey) {
-    throw new Error('OPENAI_KEY or OPENAI_API_KEY is not configured');
-  }
+  if (isGemini) {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      throw new Error('GEMINI_API_KEY is not configured in backend .env');
+    }
 
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${apiKey}`
-    },
-    body: JSON.stringify({
-      model,
-      temperature: 0.4,
-      response_format: {
-        type: 'json_object'
-      },
-      messages: [
-        {
-          role: 'system',
-          content:
-            'You generate structured privacy policy drafts for admin panels. Always return valid JSON only.'
+    const model = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
         },
-        {
-          role: 'user',
-          content: buildPrompt({ projectName, websiteUrl, promptInputs })
-        }
-      ]
-    })
-  });
+        body: JSON.stringify({
+          contents: [
+            {
+              role: 'user',
+              parts: [
+                {
+                  text: buildPrompt({ projectName, websiteUrl, promptInputs })
+                }
+              ]
+            }
+          ],
+          systemInstruction: {
+            parts: [
+              {
+                text: 'You generate structured privacy policy drafts for admin panels. Always return valid JSON only.'
+              }
+            ]
+          },
+          generationConfig: {
+            responseMimeType: 'application/json',
+            temperature: 0.4
+          }
+        })
+      }
+    );
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`OpenAI request failed: ${errorText}`);
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Gemini request failed: ${errorText}`);
+    }
+
+    const data = await response.json();
+    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+
+    if (!text) {
+      throw new Error('Gemini returned an empty response');
+    }
+
+    const parsed = JSON.parse(fallbackJson(text));
+
+    if (!parsed?.content) {
+      throw new Error('Gemini response did not contain the expected content object');
+    }
+
+    return parsed;
+  } else {
+    const apiKey = process.env.OPENAI_API_KEY || process.env.OPENAI_KEY;
+    const model = process.env.OPENAI_MODEL || 'gpt-4o-mini';
+
+    if (!apiKey) {
+      throw new Error('OPENAI_KEY or OPENAI_API_KEY is not configured');
+    }
+
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model,
+        temperature: 0.4,
+        response_format: {
+          type: 'json_object'
+        },
+        messages: [
+          {
+            role: 'system',
+            content:
+              'You generate structured privacy policy drafts for admin panels. Always return valid JSON only.'
+          },
+          {
+            role: 'user',
+            content: buildPrompt({ projectName, websiteUrl, promptInputs })
+          }
+        ]
+      })
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`OpenAI request failed: ${errorText}`);
+    }
+
+    const data = await response.json();
+    const text = data?.choices?.[0]?.message?.content || '';
+
+    if (!text) {
+      throw new Error('OpenAI returned an empty response');
+    }
+
+    const parsed = JSON.parse(fallbackJson(text));
+
+    if (!parsed?.content) {
+      throw new Error('OpenAI response did not contain the expected content object');
+    }
+
+    return parsed;
   }
-
-  const data = await response.json();
-  const text = data?.choices?.[0]?.message?.content || '';
-
-  if (!text) {
-    throw new Error('OpenAI returned an empty response');
-  }
-
-  const parsed = JSON.parse(fallbackJson(text));
-
-  if (!parsed?.content) {
-    throw new Error('OpenAI response did not contain the expected content object');
-  }
-
-  return parsed;
 };
