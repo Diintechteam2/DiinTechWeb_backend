@@ -640,8 +640,8 @@ const importData = async () => {
     // Create Default Admin
     await Admin.create({
       name: 'DiinTech Admin',
-      email: 'admin@diintech.com',
-      password: 'admin123'
+      email: process.env.ADMIN_EMAIL || 'admin@diintech.com',
+      password: process.env.ADMIN_PASSWORD || 'admin123'
     });
 
     console.log('Data Imported Successfully!'.green.inverse);

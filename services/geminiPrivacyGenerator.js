@@ -25,7 +25,7 @@ const buildPrompt = ({ projectName, websiteUrl, promptInputs }) => {
   const fallbackEmail = domain ? `privacy@${domain}` : 'contact@example.com';
 
   return `
-You are generating a privacy policy draft for a software product.
+You are generating a privacy policy draft and optionally a refund policy draft for a software product.
 
 Return ONLY valid JSON. Do not return markdown, explanation, or code fences.
 
@@ -44,7 +44,17 @@ Project details:
 - Has payments/subscriptions: ${promptInputs.hasPayments ? 'Yes' : 'No'}
 - Contact email: ${promptInputs.contactEmail || fallbackEmail}
 
-Write a realistic privacy policy draft based on the provided details. Avoid fake company names. Keep the language professional and website-ready.
+Refund Policy Specific Details:
+- Generate refund policy: ${promptInputs.generateRefundPolicy ? 'Yes' : 'No'}
+- Refund company processing buffer: ${promptInputs.refundBuffer || 'Not provided'}
+- Refund gateway settlement time: ${promptInputs.gatewayTat || 'Not provided'}
+- Refund rules/eligibility guidelines: ${promptInputs.refundRules || 'Not provided'}
+
+Terms & Conditions Specific Details:
+- Generate terms and conditions: ${promptInputs.generateTerms ? 'Yes' : 'No'}
+- Terms and conditions guidelines/notes: ${promptInputs.termsNotes || 'Not provided'}
+
+Write a realistic policy draft based on the provided details. Avoid fake company names. Keep the language professional and website-ready.
 
 Return this exact JSON shape:
 {
@@ -73,6 +83,27 @@ Return this exact JSON shape:
       "instruction": "string",
       "email": "string"
     }
+  },
+  "refundPolicy": {
+    "enabled": boolean,
+    "content": {
+      "introduction": "string",
+      "eligibility": "string",
+      "timeline": "string",
+      "process": "string"
+    }
+  },
+  "termsConditions": {
+    "enabled": boolean,
+    "content": {
+      "introduction": "string",
+      "userAgreement": "string",
+      "intellectualProperty": "string",
+      "userConduct": "string",
+      "limitationLiability": "string",
+      "governingLaw": "string",
+      "contactUs": "string"
+    }
   }
 }
 
@@ -81,7 +112,11 @@ Rules:
 - If uploads or AI are not used, keep imageProcessing and disclaimer as empty strings.
 - If details are missing, make conservative, generic assumptions rather than inventing risky specifics.
 - Use the provided contact email in both dataDeletion.email and contactUs.email when possible.
-- The generated privacy policy draft (all text inside the JSON values) must be written in professional, clear English only, even if the input information or additional notes are in another language.
+- The generated policy draft (all text inside the JSON values) must be written in professional, clear English only, even if the input information or additional notes are in another language.
+- If "Generate refund policy" is "No", set refundPolicy.enabled to false and keep all refundPolicy.content text fields as empty strings.
+- If "Generate refund policy" is "Yes", set refundPolicy.enabled to true and populate all refundPolicy.content text fields. Explain the refund eligibility clearly (e.g. non-refundable if tokens are consumed), specify the processing timeline (company processing buffer + gateway standard settlement time), and detail how to request a refund.
+- If "Generate terms and conditions" is "No", set termsConditions.enabled to false and keep all termsConditions.content text fields as empty strings.
+- If "Generate terms and conditions" is "Yes", set termsConditions.enabled to true and populate all termsConditions.content text fields. Write comprehensive terms covering user agreement/eligibility, intellectual property, prohibited user conduct, limitation of liability, governing law, and support contact channels.
 `.trim();
 };
 
@@ -146,6 +181,28 @@ exports.generatePrivacyDraft = async ({ projectName, websiteUrl, promptInputs, p
       throw new Error('Gemini response did not contain the expected content object');
     }
 
+    if (!parsed.refundPolicy) {
+      parsed.refundPolicy = {
+        enabled: false,
+        content: { introduction: '', eligibility: '', timeline: '', process: '' }
+      };
+    }
+
+    if (!parsed.termsConditions) {
+      parsed.termsConditions = {
+        enabled: false,
+        content: {
+          introduction: '',
+          userAgreement: '',
+          intellectualProperty: '',
+          userConduct: '',
+          limitationLiability: '',
+          governingLaw: '',
+          contactUs: ''
+        }
+      };
+    }
+
     return parsed;
   } else {
     const apiKey = process.env.OPENAI_API_KEY || process.env.OPENAI_KEY;
@@ -197,6 +254,28 @@ exports.generatePrivacyDraft = async ({ projectName, websiteUrl, promptInputs, p
 
     if (!parsed?.content) {
       throw new Error('OpenAI response did not contain the expected content object');
+    }
+
+    if (!parsed.refundPolicy) {
+      parsed.refundPolicy = {
+        enabled: false,
+        content: { introduction: '', eligibility: '', timeline: '', process: '' }
+      };
+    }
+
+    if (!parsed.termsConditions) {
+      parsed.termsConditions = {
+        enabled: false,
+        content: {
+          introduction: '',
+          userAgreement: '',
+          intellectualProperty: '',
+          userConduct: '',
+          limitationLiability: '',
+          governingLaw: '',
+          contactUs: ''
+        }
+      };
     }
 
     return parsed;

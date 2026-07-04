@@ -59,6 +59,33 @@ const ProjectSchema = new mongoose.Schema({
       }
     }
   },
+  refundPolicy: {
+    enabled: {
+      type: Boolean,
+      default: false
+    },
+    content: {
+      introduction: String,
+      eligibility: String,
+      timeline: String,
+      process: String
+    }
+  },
+  termsConditions: {
+    enabled: {
+      type: Boolean,
+      default: false
+    },
+    content: {
+      introduction: String,
+      userAgreement: String,
+      intellectualProperty: String,
+      userConduct: String,
+      limitationLiability: String,
+      governingLaw: String,
+      contactUs: String
+    }
+  },
   createdAt: {
     type: Date,
     default: Date.now
