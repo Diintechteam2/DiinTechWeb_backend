@@ -19,45 +19,76 @@ const fallbackJson = (text) => {
   return trimmed;
 };
 
-const buildPrompt = ({ projectName, websiteUrl, promptInputs }) => {
+const buildPrompt = ({ projectName, websiteUrl, promptInputs, target }) => {
   const normalizedWebsiteUrl = websiteUrl || '';
   const domain = normalizedWebsiteUrl.replace(/^https?:\/\//, '').replace(/\/.*$/, '');
   const fallbackEmail = domain ? `privacy@${domain}` : 'contact@example.com';
 
-  return `
-You are generating a privacy policy draft and optionally a refund policy draft for a software product.
+  let specificPrompt = '';
+  let jsonShape = '';
 
-Return ONLY valid JSON. Do not return markdown, explanation, or code fences.
-
-Project details:
-- Project name: ${projectName}
-- Website URL: ${websiteUrl || 'Not provided'}
-- Project description: ${promptInputs.projectDescription || 'Not provided'}
-- Target users: ${promptInputs.targetUsers || 'Not provided'}
-- Core features: ${promptInputs.coreFeatures || 'Not provided'}
-- Data collected: ${promptInputs.dataCollected || 'Not provided'}
-- Third-party services used: ${promptInputs.thirdPartyServices || 'Not provided'}
-- Additional notes: ${promptInputs.additionalNotes || 'Not provided'}
-- Has login/signup: ${promptInputs.hasAuthentication ? 'Yes' : 'No'}
-- Has file/image uploads: ${promptInputs.hasUploads ? 'Yes' : 'No'}
-- Uses AI-generated output: ${promptInputs.usesAI ? 'Yes' : 'No'}
-- Has payments/subscriptions: ${promptInputs.hasPayments ? 'Yes' : 'No'}
-- Contact email: ${promptInputs.contactEmail || fallbackEmail}
-
-Refund Policy Specific Details:
-- Generate refund policy: ${promptInputs.generateRefundPolicy ? 'Yes' : 'No'}
-- Refund company processing buffer: ${promptInputs.refundBuffer || 'Not provided'}
-- Refund gateway settlement time: ${promptInputs.gatewayTat || 'Not provided'}
-- Refund rules/eligibility guidelines: ${promptInputs.refundRules || 'Not provided'}
-
-Terms & Conditions Specific Details:
-- Generate terms and conditions: ${promptInputs.generateTerms ? 'Yes' : 'No'}
-- Terms and conditions guidelines/notes: ${promptInputs.termsNotes || 'Not provided'}
-
-Write a realistic policy draft based on the provided details. Avoid fake company names. Keep the language professional and website-ready.
-
-Return this exact JSON shape:
-{
+  if (target === 'privacy') {
+    specificPrompt = `Write a realistic Privacy Policy draft based on the project details. Avoid fake company names. Keep the language professional and website-ready.`;
+    jsonShape = `{
+  "content": {
+    "introduction": "string",
+    "informationCollect": {
+      "personal": ["string"],
+      "userContent": ["string"],
+      "deviceUsage": ["string"]
+    },
+    "howWeUse": ["string"],
+    "dataSharing": ["string"],
+    "dataSecurity": "string",
+    "dataRetention": "string",
+    "dataDeletion": {
+      "instruction": "string",
+      "email": "string",
+      "subject": "string"
+    },
+    "childrenPrivacy": "string",
+    "thirdParty": "string",
+    "changesToPolicy": "string",
+    "imageProcessing": "string",
+    "disclaimer": "string",
+    "contactUs": {
+      "instruction": "string",
+      "email": "string"
+    }
+  }
+}`;
+  } else if (target === 'refund') {
+    specificPrompt = `Write a realistic Refund Policy draft based on the project details and Refund Policy Specific Details. Explain the refund eligibility clearly (e.g. non-refundable if tokens are consumed), specify the processing timeline (company processing buffer + gateway standard settlement time), and detail how to request a refund. Keep the language professional and website-ready.`;
+    jsonShape = `{
+  "refundPolicy": {
+    "enabled": true,
+    "content": {
+      "introduction": "string",
+      "eligibility": "string",
+      "timeline": "string",
+      "process": "string"
+    }
+  }
+}`;
+  } else if (target === 'terms') {
+    specificPrompt = `Write a realistic Terms & Conditions policy draft based on the project details and Terms & Conditions Specific Details. Write comprehensive terms covering user agreement/eligibility, intellectual property, prohibited user conduct, limitation of liability, governing law, and support contact channels. Keep the language professional and website-ready.`;
+    jsonShape = `{
+  "termsConditions": {
+    "enabled": true,
+    "content": {
+      "introduction": "string",
+      "userAgreement": "string",
+      "intellectualProperty": "string",
+      "userConduct": "string",
+      "limitationLiability": "string",
+      "governingLaw": "string",
+      "contactUs": "string"
+    }
+  }
+}`;
+  } else {
+    specificPrompt = `Write a realistic policy draft based on the provided details. Avoid fake company names. Keep the language professional and website-ready.`;
+    jsonShape = `{
   "content": {
     "introduction": "string",
     "informationCollect": {
@@ -105,7 +136,43 @@ Return this exact JSON shape:
       "contactUs": "string"
     }
   }
-}
+}`;
+  }
+
+  return `
+You are generating a software product policy draft.
+
+Return ONLY valid JSON. Do not return markdown, explanation, or code fences.
+
+Project details:
+- Project name: ${projectName}
+- Website URL: ${websiteUrl || 'Not provided'}
+- Project description: ${promptInputs.projectDescription || 'Not provided'}
+- Target users: ${promptInputs.targetUsers || 'Not provided'}
+- Core features: ${promptInputs.coreFeatures || 'Not provided'}
+- Data collected: ${promptInputs.dataCollected || 'Not provided'}
+- Third-party services used: ${promptInputs.thirdPartyServices || 'Not provided'}
+- Additional notes: ${promptInputs.additionalNotes || 'Not provided'}
+- Has login/signup: ${promptInputs.hasAuthentication ? 'Yes' : 'No'}
+- Has file/image uploads: ${promptInputs.hasUploads ? 'Yes' : 'No'}
+- Uses AI-generated output: ${promptInputs.usesAI ? 'Yes' : 'No'}
+- Has payments/subscriptions: ${promptInputs.hasPayments ? 'Yes' : 'No'}
+- Contact email: ${promptInputs.contactEmail || fallbackEmail}
+
+Refund Policy Specific Details:
+- Generate refund policy: ${promptInputs.generateRefundPolicy ? 'Yes' : 'No'}
+- Refund company processing buffer: ${promptInputs.refundBuffer || 'Not provided'}
+- Refund gateway settlement time: ${promptInputs.gatewayTat || 'Not provided'}
+- Refund rules/eligibility guidelines: ${promptInputs.refundRules || 'Not provided'}
+
+Terms & Conditions Specific Details:
+- Generate terms and conditions: ${promptInputs.generateTerms ? 'Yes' : 'No'}
+- Terms and conditions guidelines/notes: ${promptInputs.termsNotes || 'Not provided'}
+
+${specificPrompt}
+
+Return this exact JSON shape:
+${jsonShape}
 
 Rules:
 - Every array must contain at least 2 meaningful items when relevant.
@@ -114,13 +181,13 @@ Rules:
 - Use the provided contact email in both dataDeletion.email and contactUs.email when possible.
 - The generated policy draft (all text inside the JSON values) must be written in professional, clear English only, even if the input information or additional notes are in another language.
 - If "Generate refund policy" is "No", set refundPolicy.enabled to false and keep all refundPolicy.content text fields as empty strings.
-- If "Generate refund policy" is "Yes", set refundPolicy.enabled to true and populate all refundPolicy.content text fields. Explain the refund eligibility clearly (e.g. non-refundable if tokens are consumed), specify the processing timeline (company processing buffer + gateway standard settlement time), and detail how to request a refund.
+- If "Generate refund policy" is "Yes", set refundPolicy.enabled to true and populate all refundPolicy.content text fields.
 - If "Generate terms and conditions" is "No", set termsConditions.enabled to false and keep all termsConditions.content text fields as empty strings.
-- If "Generate terms and conditions" is "Yes", set termsConditions.enabled to true and populate all termsConditions.content text fields. Write comprehensive terms covering user agreement/eligibility, intellectual property, prohibited user conduct, limitation of liability, governing law, and support contact channels.
+- If "Generate terms and conditions" is "Yes", set termsConditions.enabled to true and populate all termsConditions.content text fields.
 `.trim();
 };
 
-exports.generatePrivacyDraft = async ({ projectName, websiteUrl, promptInputs, provider = 'openai' }) => {
+exports.generatePrivacyDraft = async ({ projectName, websiteUrl, promptInputs, provider = 'openai', target }) => {
   const isGemini = provider?.toLowerCase() === 'gemini';
 
   if (isGemini) {
@@ -143,7 +210,7 @@ exports.generatePrivacyDraft = async ({ projectName, websiteUrl, promptInputs, p
               role: 'user',
               parts: [
                 {
-                  text: buildPrompt({ projectName, websiteUrl, promptInputs })
+                  text: buildPrompt({ projectName, websiteUrl, promptInputs, target })
                 }
               ]
             }
@@ -177,8 +244,21 @@ exports.generatePrivacyDraft = async ({ projectName, websiteUrl, promptInputs, p
 
     const parsed = JSON.parse(fallbackJson(text));
 
-    if (!parsed?.content) {
+    if (target === 'privacy' && !parsed?.content) {
       throw new Error('Gemini response did not contain the expected content object');
+    }
+    if (target === 'refund' && !parsed?.refundPolicy) {
+      throw new Error('Gemini response did not contain the expected refundPolicy object');
+    }
+    if (target === 'terms' && !parsed?.termsConditions) {
+      throw new Error('Gemini response did not contain the expected termsConditions object');
+    }
+    if (!target && !parsed?.content) {
+      throw new Error('Gemini response did not contain the expected content object');
+    }
+
+    if (!parsed.content) {
+      parsed.content = {};
     }
 
     if (!parsed.refundPolicy) {
@@ -232,7 +312,7 @@ exports.generatePrivacyDraft = async ({ projectName, websiteUrl, promptInputs, p
           },
           {
             role: 'user',
-            content: buildPrompt({ projectName, websiteUrl, promptInputs })
+            content: buildPrompt({ projectName, websiteUrl, promptInputs, target })
           }
         ]
       })
@@ -252,8 +332,21 @@ exports.generatePrivacyDraft = async ({ projectName, websiteUrl, promptInputs, p
 
     const parsed = JSON.parse(fallbackJson(text));
 
-    if (!parsed?.content) {
+    if (target === 'privacy' && !parsed?.content) {
       throw new Error('OpenAI response did not contain the expected content object');
+    }
+    if (target === 'refund' && !parsed?.refundPolicy) {
+      throw new Error('OpenAI response did not contain the expected refundPolicy object');
+    }
+    if (target === 'terms' && !parsed?.termsConditions) {
+      throw new Error('OpenAI response did not contain the expected termsConditions object');
+    }
+    if (!target && !parsed?.content) {
+      throw new Error('OpenAI response did not contain the expected content object');
+    }
+
+    if (!parsed.content) {
+      parsed.content = {};
     }
 
     if (!parsed.refundPolicy) {

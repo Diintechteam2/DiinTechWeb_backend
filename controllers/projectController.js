@@ -138,7 +138,7 @@ exports.deleteProject = async (req, res, next) => {
 // @access  Private/Admin
 exports.generateProjectPrivacyDraft = async (req, res, next) => {
   try {
-    const { projectName, websiteUrl, promptInputs, provider } = req.body || {};
+    const { projectName, websiteUrl, promptInputs, provider, target } = req.body || {};
 
     if (!projectName || !String(projectName).trim()) {
       return res.status(400).json({
@@ -151,7 +151,8 @@ exports.generateProjectPrivacyDraft = async (req, res, next) => {
       projectName: String(projectName).trim(),
       websiteUrl: String(websiteUrl || '').trim(),
       promptInputs: promptInputs || {},
-      provider: provider
+      provider: provider,
+      target: target
     });
 
     res.status(200).json({
