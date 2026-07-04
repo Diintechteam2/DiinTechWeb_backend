@@ -81,6 +81,7 @@ Rules:
 - If uploads or AI are not used, keep imageProcessing and disclaimer as empty strings.
 - If details are missing, make conservative, generic assumptions rather than inventing risky specifics.
 - Use the provided contact email in both dataDeletion.email and contactUs.email when possible.
+- The generated privacy policy draft (all text inside the JSON values) must be written in professional, clear English only, even if the input information or additional notes are in another language.
 `.trim();
 };
 
