@@ -595,7 +595,7 @@ const siteContentData = {
     complianceBadgeText: 'Legal Compliance',
     titlePrefix: 'Privacy Policy for',
     organizationLine: 'A unit of Diin Technology',
-    effectiveDateLabel: 'Effective Date:',
+    effectiveDateLabel: 'Last Updated:',
     sections: {
       introduction: 'Introduction',
       informationWeCollect: 'Information We Collect',
