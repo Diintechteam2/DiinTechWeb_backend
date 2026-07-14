@@ -14,11 +14,16 @@
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1086.0",
     "@aws-sdk/s3-request-presigner": "^3.1086.0",
+    "@jerrycoder/instagram-api": "^2.5.9",
+    "@mrnima/instagram-downloader": "^1.0.0",
+    "axios": "^1.18.1",
     "bcryptjs": "^3.0.3",
+    "cheerio": "^1.2.0",
     "colors": "^1.4.0",
     "cors": "^2.8.6",
     "dotenv": "^17.4.1",
     "express": "^5.2.1",
+    "instagram-url-direct": "^2.0.7",
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.4.1"
   },

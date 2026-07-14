@@ -230,3 +230,138 @@ exports.downloadAsset = async (req, res, next) => {
     });
   }
 };
+
+// @desc    Get bulk presigned URLs for direct upload to R2
+// @route   POST /api/v1/project-assets/presigned-urls-bulk
+// @access  Private/Admin
+exports.getPresignedUrlsBulk = async (req, res, next) => {
+  try {
+    const { files } = req.body;
+    if (!files || !Array.isArray(files) || files.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide an array of files'
+      });
+    }
+
+    const r2Client = getR2Client();
+    const bucket = process.env.R2_BUCKET_NAME;
+    const publicUrlBase = process.env.R2_PUBLIC_URL.replace(/\/$/, '');
+
+    const data = await Promise.all(
+      files.map(async (file) => {
+        const { filename, contentType } = file;
+        const uniqueId = Date.now() + '-' + Math.round(Math.random() * 1e9);
+        const key = `assets/${uniqueId}-${filename}`;
+
+        const command = new PutObjectCommand({
+          Bucket: bucket,
+          Key: key,
+          ContentType: contentType
+        });
+
+        const presignedUrl = await getSignedUrl(r2Client, command, { expiresIn: 900 });
+        const fileUrl = `${publicUrlBase}/${key}`;
+
+        return {
+          filename,
+          uploadUrl: presignedUrl,
+          fileUrl,
+          key
+        };
+      })
+    );
+
+    res.status(200).json({
+      success: true,
+      data
+    });
+  } catch (err) {
+    console.error('Bulk presigned URL error:', err);
+    res.status(500).json({
+      success: false,
+      message: err.message || 'Failed to generate bulk upload URLs'
+    });
+  }
+};
+
+// @desc    Create multiple Project Asset entries in database
+// @route   POST /api/v1/project-assets/bulk
+// @access  Private/Admin
+exports.createAssetsBulk = async (req, res, next) => {
+  try {
+    const { assets } = req.body;
+    if (!assets || !Array.isArray(assets) || assets.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide an array of assets'
+      });
+    }
+
+    const projectIds = [...new Set(assets.map(a => a.project))];
+    const projectsExist = await Project.find({ _id: { $in: projectIds } });
+    if (projectsExist.length !== projectIds.length) {
+      return res.status(404).json({
+        success: false,
+        message: 'One or more associated projects not found'
+      });
+    }
+
+    const savedAssets = await ProjectAsset.insertMany(
+      assets.map(a => ({
+        project: a.project,
+        title: a.title || '',
+        type: a.type,
+        url: a.url,
+        key: a.key
+      }))
+    );
+
+    res.status(201).json({
+      success: true,
+      message: 'Assets recorded successfully',
+      data: savedAssets
+    });
+  } catch (err) {
+    console.error('Bulk save assets error:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Server Error'
+    });
+  }
+};
+
+// @desc    Update Project Asset title
+// @route   PUT /api/v1/project-assets/:id
+// @access  Private/Admin
+exports.updateAsset = async (req, res, next) => {
+  try {
+    const { title } = req.body;
+    let asset = await ProjectAsset.findById(req.params.id);
+
+    if (!asset) {
+      return res.status(404).json({
+        success: false,
+        message: 'Asset not found'
+      });
+    }
+
+    asset = await ProjectAsset.findByIdAndUpdate(
+      req.params.id,
+      { title: title || '' },
+      { new: true, runValidators: true }
+    );
+
+    res.status(200).json({
+      success: true,
+      message: 'Asset updated successfully',
+      data: asset
+    });
+  } catch (err) {
+    console.error('Update asset error:', err.message);
+    res.status(500).json({
+      success: false,
+      message: 'Server Error'
+    });
+  }
+};
