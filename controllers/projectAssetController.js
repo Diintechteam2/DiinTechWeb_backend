@@ -104,7 +104,7 @@ exports.getPresignedUrl = async (req, res, next) => {
 // @access  Private/Admin
 exports.createAsset = async (req, res, next) => {
   try {
-    const { project, title, type, url, key } = req.body;
+    const { project, title, type, url, key, category, description } = req.body;
 
     if (!project || !type || !url || !key) {
       return res.status(400).json({
@@ -127,7 +127,9 @@ exports.createAsset = async (req, res, next) => {
       title: title || '',
       type,
       url,
-      key
+      key,
+      category: category || '',
+      description: description || ''
     });
 
     res.status(201).json({
@@ -313,7 +315,9 @@ exports.createAssetsBulk = async (req, res, next) => {
         title: a.title || '',
         type: a.type,
         url: a.url,
-        key: a.key
+        key: a.key,
+        category: a.category || '',
+        description: a.description || ''
       }))
     );
 
@@ -336,7 +340,7 @@ exports.createAssetsBulk = async (req, res, next) => {
 // @access  Private/Admin
 exports.updateAsset = async (req, res, next) => {
   try {
-    const { title } = req.body;
+    const { title, category, description } = req.body;
     let asset = await ProjectAsset.findById(req.params.id);
 
     if (!asset) {
@@ -348,7 +352,11 @@ exports.updateAsset = async (req, res, next) => {
 
     asset = await ProjectAsset.findByIdAndUpdate(
       req.params.id,
-      { title: title || '' },
+      { 
+        title: title || '',
+        category: category || '',
+        description: description || ''
+      },
       { new: true, runValidators: true }
     );
 

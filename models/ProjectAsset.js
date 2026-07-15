@@ -24,6 +24,16 @@ const ProjectAssetSchema = new mongoose.Schema({
     type: String,
     required: [true, 'Asset storage key is required']
   },
+  category: {
+    type: String,
+    trim: true,
+    default: ''
+  },
+  description: {
+    type: String,
+    trim: true,
+    default: ''
+  },
   createdAt: {
     type: Date,
     default: Date.now
