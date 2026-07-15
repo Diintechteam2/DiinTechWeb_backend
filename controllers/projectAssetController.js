@@ -132,6 +132,12 @@ exports.createAsset = async (req, res, next) => {
       description: description || ''
     });
 
+    if (category && category.trim()) {
+      await Project.findByIdAndUpdate(project, {
+        $addToSet: { categories: category.trim() }
+      });
+    }
+
     res.status(201).json({
       success: true,
       message: 'Asset recorded successfully',
@@ -321,6 +327,15 @@ exports.createAssetsBulk = async (req, res, next) => {
       }))
     );
 
+    // Save unique categories to their associated projects
+    for (const a of assets) {
+      if (a.category && a.category.trim()) {
+        await Project.findByIdAndUpdate(a.project, {
+          $addToSet: { categories: a.category.trim() }
+        });
+      }
+    }
+
     res.status(201).json({
       success: true,
       message: 'Assets recorded successfully',
@@ -359,6 +374,12 @@ exports.updateAsset = async (req, res, next) => {
       },
       { new: true, runValidators: true }
     );
+
+    if (category && category.trim()) {
+      await Project.findByIdAndUpdate(asset.project, {
+        $addToSet: { categories: category.trim() }
+      });
+    }
 
     res.status(200).json({
       success: true,

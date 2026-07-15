@@ -86,6 +86,10 @@ const ProjectSchema = new mongoose.Schema({
       contactUs: String
     }
   },
+  categories: {
+    type: [String],
+    default: []
+  },
   createdAt: {
     type: Date,
     default: Date.now
